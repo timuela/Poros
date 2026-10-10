@@ -1,0 +1,28 @@
+# Python 3.11+ (PySide6 supports 3.14 from 6.10; CI uses 3.11)
+
+# Web framework and signalling server (for browser and Android clients)
+Flask==3.0.3
+Flask-SocketIO==5.3.6
+
+# Desktop acts as the signalling client (asyncio + aiohttp transport)
+python-socketio[asyncio_client]>=5.11.0
+
+# Native desktop UI
+PySide6>=6.7.0
+
+# WebRTC audio receive (the desktop is the answerer)
+aiortc>=1.9.0
+
+# System audio output (writes into the virtual sound card)
+sounddevice>=0.4.6
+numpy>=1.24
+
+# QR code generation (pure Python, no Pillow needed)
+segno>=1.6.1
+
+# On-the-fly HTTPS certificate generation (works on every platform)
+pyOpenSSL>=24.1.0
+cryptography>=42.0.5
+
+# Packaging tool
+pyinstaller>=6.15.0

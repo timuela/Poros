@@ -1,0 +1,14 @@
+# Keep vendored front-end files out of the language statistics
+webui/** linguist-vendored
+
+# Not source code
+*.yml linguist-detectable=false
+*.yaml linguist-detectable=false
+
+# Mark the entry point as Python
+main.py linguist-language=Python
+
+# Gradle wrapper
+android/gradlew text eol=lf
+android/gradlew.bat text eol=crlf
+android/gradle/wrapper/gradle-wrapper.jar binary

@@ -1,0 +1,273 @@
+name: Build and Release Poros
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. v0.1.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  # === Poros Host: the portable desktop build ===
+  build:
+    name: Host ${{ matrix.target_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64 only for now; the Linux and macOS host builds are
+          # parked until those targets are picked back up.
+          - os: windows-latest
+            python_arch: x64       # the environment must be x64 for installs to work
+            target_arch: x86_64    # package for x64
+            target_name: windows-x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.python_arch }} # follow the matrix exactly
+
+      - name: Install Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libegl1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 libfontconfig1 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libportaudio2
+
+      - name: Install Python Dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            [ -f requirements-windows.txt ] && pip install -r requirements-windows.txt
+          fi
+          pip install pyinstaller
+
+      # Catches missing/misnamed Qt APIs and paint-time errors before there is
+      # a binary to download. Needs libportaudio2 (installed above) because
+      # desktop.devices imports sounddevice.
+      - name: Smoke-test the Qt app
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          set -o pipefail
+          python -u desktop/smoke_test.py 2>&1 | tee smoke.log
+
+      - name: Upload smoke log
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-smoke-log
+          path: smoke.log
+          if-no-files-found: warn
+          retention-days: 5
+
+      - name: Get Version String
+        id: version
+        shell: bash
+        run: |
+          RAW="${{ github.event.inputs.version || github.ref_name }}"
+          echo "tag=$RAW" >> $GITHUB_OUTPUT
+          echo "version=${RAW#v}" >> $GITHUB_OUTPUT
+
+      # === Windows: both shapes from one spec ===
+      # One-dir is what the installer ships (and starts fastest); the single-file
+      # exe is the portable download, which unpacks to %TEMP% on every launch.
+      - name: Build with PyInstaller (Windows)
+        if: runner.os == 'Windows'
+        env:
+          TARGET_ARCH: ${{ matrix.target_arch }} # read by main.spec
+        run: |
+          pyinstaller --noconfirm --workpath build\onedir --distpath dist main.spec
+          if ($LASTEXITCODE -ne 0) { throw "one-dir build failed" }
+
+          # A separate --distpath keeps this run from touching the one-dir output
+          # the installer step still needs.
+          $env:POROS_ONEFILE = '1'
+          pyinstaller --noconfirm --workpath build\onefile --distpath dist-portable main.spec
+          if ($LASTEXITCODE -ne 0) { throw "single-file build failed" }
+          Remove-Item Env:POROS_ONEFILE
+
+          Move-Item dist-portable\Poros-Portable.exe `
+            "dist\Poros-Host-Portable-${{ steps.version.outputs.version }}-${{ matrix.target_name }}.exe" -Force
+        shell: pwsh
+
+      # The Windows runner images ship Inno Setup 6. Only x64 gets an installer;
+      # arm64 stays portable-only. The target name comes from the script's own
+      # default (windows-x64), so nothing has to be threaded through a /D define.
+      - name: Build installer (Windows x64)
+        if: matrix.target_name == 'windows-x64'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = "${{ steps.version.outputs.version }}"
+          $payload = Join-Path $PWD 'dist\Poros'
+          $iss = Join-Path $PWD 'installer\poros.iss'
+
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe"
+          )
+          if (-not $iscc) { $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1 }
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) { Write-Output "::error::Inno Setup (ISCC.exe) not found"; exit 1 }
+
+          Write-Host "iscc:    $iscc"
+          Write-Host "payload: $payload"
+          Write-Host "script:  $iss"
+          if (-not (Test-Path (Join-Path $payload 'Poros.exe'))) {
+            Write-Output "::error::installer payload missing: no Poros.exe under $payload"
+            Get-ChildItem dist | Select-Object -First 12 | Out-String | Write-Host
+            exit 1
+          }
+
+          $log = & $iscc "/DAppVersion=$version" "/DDistDir=$payload" $iss 2>&1
+          $code = $LASTEXITCODE
+          $log | Write-Host
+          if ($code -ne 0) {
+            $tail = ($log | Out-String).Trim() -replace "`r?`n", ' | '
+            if ($tail.Length -gt 800) { $tail = $tail.Substring($tail.Length - 800) }
+            Write-Output "::error::ISCC exited $code :: $tail"
+            exit 1
+          }
+        shell: pwsh
+
+      # === Linux/macOS build (bash, spec variables) ===
+      - name: Build with PyInstaller (Unix)
+        if: runner.os != 'Windows'
+        env:
+          TARGET_ARCH: ${{ matrix.target_arch }} # read by main.spec
+        run: |
+          pyinstaller --noconfirm main.spec
+          tar -czf "dist/Poros-Host-${{ steps.version.outputs.version }}-${{ matrix.target_name }}.tar.gz" -C dist Poros
+        shell: bash
+
+      - name: Upload Host build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Poros-Host-${{ matrix.target_name }}
+          path: |
+            dist/Poros-Host-*
+          retention-days: 5
+
+  # === Poros Client: the Android app ===
+  android:
+    name: Client android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Get Version String
+        id: version
+        shell: bash
+        working-directory: .
+        run: |
+          RAW="${{ github.event.inputs.version || github.ref_name }}"
+          echo "version=${RAW#v}" >> $GITHUB_OUTPUT
+
+      # Signed with the checked-in test key, so every build shares one
+      # signature and a new APK can upgrade an existing install.
+      # versionCode is derived from the version the same way dev\build-apk.ps1
+      # does it (0.1.28 -> 128). Using github.run_number here made a released
+      # APK look older than a locally built one, so Android refused to install
+      # it over the top ("Can't downgrade apps", error -25).
+      - name: Build client APK
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          code=$(echo "$version" | awk -F. '{printf "%d", $1 * 10000 + $2 * 100 + $3}')
+          echo "versionName=$version versionCode=$code"
+          gradle assembleRelease --no-daemon --stacktrace \
+            -PversionName="$version" \
+            -PversionCode="$code"
+
+      - name: Rename APK
+        run: |
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk \
+             "../dist/Poros-Client-${{ steps.version.outputs.version }}.apk"
+
+      - name: Upload Client build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Poros-Client
+          path: dist/Poros-Client-*.apk
+          retention-days: 5
+
+  # === Publish both halves as one release ===
+  release:
+    name: Create Release
+    needs: [build, android]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare Release Files
+        run: |
+          mkdir -p release-files
+          # Only the built binaries belong in a release; the smoke log and any
+          # other diagnostics live as workflow artifacts instead.
+          find artifacts -type f -name 'Poros-*' -exec cp {} release-files/ \;
+          ls -la release-files
+
+      - name: Drop stray release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG="${{ github.event.inputs.version || github.ref_name }}"
+          gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null \
+            | grep -v '^Poros-' \
+            | while read -r name; do
+                [ -n "$name" ] && gh release delete-asset "$TAG" "$name" --yes || true
+              done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: Release ${{ github.event.inputs.version || github.ref_name }}
+          files: release-files/*
+          generate_release_notes: true

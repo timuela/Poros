@@ -1,0 +1,2 @@
+# Windows-only dependency
+comtypes==1.4.2

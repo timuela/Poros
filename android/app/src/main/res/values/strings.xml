@@ -1,0 +1,75 @@
+<resources>
+    <string name="app_name">Poros</string>
+
+    <string name="notification_channel_name">Microphone</string>
+    <string name="notification_channel_desc">Keeps the microphone streaming while the screen is off</string>
+    <string name="notification_title">Poros is streaming</string>
+    <string name="notification_text">Microphone is live</string>
+    <string name="notification_action_mute">Mute</string>
+    <string name="notification_action_unmute">Unmute</string>
+
+    <string name="host_status">PC connection</string>
+    <string name="hosts">Hosts</string>
+    <string name="hosts_empty">No hosts yet — tap Add Host</string>
+    <string name="host_add">Add Host</string>
+    <string name="host_add_title">Add Host</string>
+    <string name="host_edit_title">Edit host</string>
+    <string name="host_save">Save</string>
+    <string name="host_name">Name</string>
+    <string name="host_ip">IP or IP:port</string>
+    <string name="host_description">Description (optional)</string>
+    <string name="host_delete">Delete host</string>
+    <string name="cancel">Cancel</string>
+    <string name="address_label">PC address (IP:port)</string>
+    <string name="address_hint">192.168.1.10 (port defaults to 5000)</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="gain">Gain</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
+
+    <string name="status_idle">Not connected</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_streaming">Streaming</string>
+    <string name="status_muted">Muted</string>
+    <string name="status_error">Error</string>
+
+    <string name="gain_value">%1$.1f×</string>
+
+    <string name="error_invalid_address">Enter a valid IP:port</string>
+    <string name="error_mic_permission">Microphone permission is required</string>
+    <string name="error_notification_permission">Notification permission is required to keep streaming in the background</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_more">More</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_close">Close</string>
+    <string name="about_body">WebRTC over LAN — no cloud, no account.</string>
+    <string name="lang_en">English</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_vi">Tiếng Việt</string>
+
+    <string name="pin_label">PIN</string>
+    <string name="pin_hint">6 digits shown on the PC</string>
+    <string name="error_pin_wrong">Wrong PIN — check the code shown on the PC</string>
+
+    <string name="camera_title">Camera</string>
+    <string name="camera_button">Camera</string>
+    <string name="camera_status_preparing">Preparing camera…</string>
+    <string name="camera_status_live">Streaming to PC</string>
+    <string name="camera_status_stopped">Camera stopped</string>
+    <string name="camera_status_error">Camera error</string>
+    <string name="camera_swap">Swap</string>
+    <string name="camera_torch">Torch</string>
+    <string name="camera_flip">Flip</string>
+    <string name="camera_rotate">Rotate</string>
+    <string name="camera_close">Close</string>
+    <string name="camera_error_no_host">Set the PC address first</string>
+    <string name="camera_error_permission">Camera permission is required</string>
+
+    <string name="notification_text_camera">Microphone and camera are live</string>
+    <string name="notification_action_camera_on">Camera on</string>
+    <string name="notification_action_camera_off">Camera off</string>
+</resources>

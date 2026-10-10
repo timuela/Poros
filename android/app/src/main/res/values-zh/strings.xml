@@ -1,0 +1,75 @@
+<resources>
+    <string name="app_name">Poros</string>
+
+    <string name="notification_channel_name">麦克风</string>
+    <string name="notification_channel_desc">息屏时保持麦克风传输</string>
+    <string name="notification_title">Poros 正在传输</string>
+    <string name="notification_text">麦克风已开启</string>
+    <string name="notification_action_mute">静音</string>
+    <string name="notification_action_unmute">取消静音</string>
+
+    <string name="host_status">电脑连接</string>
+    <string name="hosts">主机</string>
+    <string name="hosts_empty">还没有主机 — 点击添加主机</string>
+    <string name="host_add">添加主机</string>
+    <string name="host_add_title">添加主机</string>
+    <string name="host_edit_title">编辑主机</string>
+    <string name="host_save">保存</string>
+    <string name="host_name">名称</string>
+    <string name="host_ip">IP 或 IP:端口</string>
+    <string name="host_description">描述（可选）</string>
+    <string name="host_delete">删除主机</string>
+    <string name="cancel">取消</string>
+    <string name="address_label">电脑地址 (IP:端口)</string>
+    <string name="address_hint">192.168.1.10（端口默认 5000）</string>
+    <string name="connect">连接</string>
+    <string name="disconnect">断开</string>
+    <string name="gain">增益</string>
+    <string name="mute">静音</string>
+    <string name="unmute">取消静音</string>
+
+    <string name="status_idle">未连接</string>
+    <string name="status_connecting">连接中…</string>
+    <string name="status_connected">已连接</string>
+    <string name="status_streaming">传输中</string>
+    <string name="status_muted">已静音</string>
+    <string name="status_error">错误</string>
+
+    <string name="gain_value">%1$.1f×</string>
+
+    <string name="error_invalid_address">请输入有效的 IP:端口</string>
+    <string name="error_mic_permission">需要麦克风权限</string>
+    <string name="error_notification_permission">需要在后台保持传输的通知权限</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_more">更多</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_close">关闭</string>
+    <string name="about_body">基于局域网的 WebRTC —— 无需云端、无需账号。</string>
+    <string name="lang_en">English</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_vi">Tiếng Việt</string>
+
+    <string name="pin_label">PIN</string>
+    <string name="pin_hint">电脑上显示的 6 位数字</string>
+    <string name="error_pin_wrong">PIN 错误 — 请检查电脑上显示的验证码</string>
+
+    <string name="camera_title">摄像头</string>
+    <string name="camera_button">摄像头</string>
+    <string name="camera_status_preparing">正在准备摄像头…</string>
+    <string name="camera_status_live">正在向电脑推流</string>
+    <string name="camera_status_stopped">摄像头已停止</string>
+    <string name="camera_status_error">摄像头错误</string>
+    <string name="camera_swap">切换</string>
+    <string name="camera_torch">闪光灯</string>
+    <string name="camera_flip">翻转</string>
+    <string name="camera_rotate">旋转</string>
+    <string name="camera_close">关闭</string>
+    <string name="camera_error_no_host">请先设置电脑地址</string>
+    <string name="camera_error_permission">需要摄像头权限</string>
+
+    <string name="notification_text_camera">麦克风和摄像头正在运行</string>
+    <string name="notification_action_camera_on">开启摄像头</string>
+    <string name="notification_action_camera_off">关闭摄像头</string>
+</resources>

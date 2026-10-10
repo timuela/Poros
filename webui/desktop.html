@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" class="mdui-theme-dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poros - Desktop Host</title>
+    
+    <link rel="stylesheet" href="./lib/mdui.css">
+    <script src="./lib/mdui.global.js"></script>
+    <link href="./lib/mdui-icons.css" rel="stylesheet">
+    <script src="./lib/socket.io.min.js"></script>
+    <script src="./lib/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --color-initial: #757575;
+            --color-muted: rgb(255, 179, 174);
+            --color-bg: #121212;
+            --color-card: #1e1e1e;
+        }
+
+        
+        body {
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--color-bg); 
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        
+        .header-bar {
+            height: 56px; 
+            display: flex; 
+            align-items: center;
+            background-color: #1a1a1a; 
+            padding: 0 20px;
+            border-bottom: 1px solid #222;
+        }
+        
+        .logo-area {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.9);
+            letter-spacing: 0.5px;
+        }
+
+        
+        .tutorial-card {
+            background-color: var(--color-card); border-radius: 20px; padding: 24px 20px;
+            width: 100%; box-sizing: border-box; display: flex; flex-direction: column; 
+            align-items: center; text-align: center; border: 1px dashed #444;
+        }
+        .tutorial-ip-box {
+            background-color: #111; color: #fff; font-family: monospace; font-size: 16px;
+            padding: 8px 16px; border-radius: 8px; margin: 12px 0; font-weight: bold;
+            user-select: all; border: 1px solid #333;
+        }
+        
+        .pywebview-drag-region {
+            flex-grow: 1; height: 100%; display: flex; align-items: center;
+            font-size: 13px; color: #888; font-weight: 500; cursor: grab;
+        }
+
+        .window-controls { display: flex; gap: 4px; }
+        .win-btn {
+            width: 36px; height: 36px; border-radius: 8px; border: none; background: transparent;
+            color: #aaa; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;
+        }
+        .win-btn:hover { background-color: rgba(255,255,255,0.1); color: #fff; }
+        .win-btn.close:hover { background-color: #d32f2f; }
+
+        
+        .content { padding: 20px; display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
+
+        .status-card {
+            background-color: var(--color-card); border-radius: 20px; padding: 16px 20px;
+            width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.disconnected { background-color: #888; }
+        .dot.connected { background-color: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
+
+        .control-card {
+            width: 100%; background-color: var(--color-card); border-radius: 20px; padding: 12px 20px;
+            box-sizing: border-box; display: flex; align-items: center; gap: 16px; margin-bottom: 40px;
+        }
+
+        
+        .speaker-section { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; }
+        
+        .volume-ring {
+            position: absolute; width: 120px; height: 120px; border-radius: 50%; opacity: 0.2;
+            z-index: 0; transition: transform 0.05s linear; pointer-events: none;
+        }
+
+        .speaker-button {
+            width: 120px; height: 120px; border-radius: 50% !important; z-index: 1;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .speaker-button.initial { background-color: var(--color-initial) !important; color: #fff !important; }
+        .speaker-button.active { background-color: rgb(var(--mdui-color-primary)) !important; color: rgb(var(--mdui-color-on-primary)) !important; }
+        .volume-ring.active { background-color: rgb(var(--mdui-color-primary)); }
+        
+        .speaker-button.muted { background-color: var(--color-muted) !important; color: #4a0005 !important; }
+        .volume-ring.muted { background-color: var(--color-muted); transform: scale(1) !important; opacity: 0.1; }
+
+        /* The menu otherwise takes the field's width and clips long device
+           names; several of them share long prefixes, so a clipped one is
+           impossible to tell from another. Size it to the longest item, never
+           narrower than the field, and still capped to the viewport. */
+        mdui-select::part(menu) {
+            max-height: 256px !important; 
+            overflow-y: auto !important;
+            max-width: calc(100vw - 40px) !important;
+            overflow-x: hidden !important;
+            width: max-content !important;
+            min-width: 100% !important;
+        }
+
+        
+        .settings-panel {
+            width: 300px; max-width: 85vw; height: 100%; padding: 20px;
+            box-sizing: border-box; display: flex; flex-direction: column; gap: 22px;
+        }
+        .settings-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 18px; font-weight: bold; color: rgba(255,255,255,0.9);
+        }
+        .settings-group { display: flex; flex-direction: column; }
+        .settings-label {
+            font-size: 12px; opacity: 0.55; margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        .settings-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+        .settings-actions mdui-button { justify-content: flex-start; }
+        #settings-language-select { width: 100%; }
+        .settings-footer {
+            margin-top: auto; font-size: 12px; opacity: 0.5;
+            display: flex; justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+<div class="header-bar" style="display: flex; justify-content: space-between; align-items: center;">
+    <div id="install-overlay" style="display: none; position: absolute; top: 56px; left: 0; width: 100%; height: calc(100vh - 56px); background-color: var(--color-bg); z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
+        <mdui-circular-progress id="install-spinner"></mdui-circular-progress>
+        <mdui-icon id="install-success-icon" name="check_circle" style="display: none; font-size: 48px; color: #4CAF50;"></mdui-icon>
+        <mdui-icon id="install-error-icon" name="error_outline" style="display: none; font-size: 48px; color: #ff5252;"></mdui-icon>
+        
+        <div id="install-title" style="font-size: 18px; font-weight: bold; margin-top: 24px;" data-i18n="install_title_init">Preparing Environment</div>
+        <div id="install-desc" style="font-size: 13px; color: #888; margin-top: 12px; line-height: 1.6;" data-i18n="install_desc_init">
+        </div>
+    </div>
+        <div class="logo-area" style="display: flex; align-items: center;">
+            <mdui-icon name="podcasts" style="font-size: 20px; margin-right: 8px; color: rgb(var(--mdui-color-primary));"></mdui-icon>
+            <span style="font-weight: bold; font-size: 16px;">Poros</span>
+            <span id="app-version" style="font-size: 10px; margin-left: 8px; opacity: 0.5; font-family: monospace;">&mdash;</span>
+        </div>
+<div class="header-actions">
+            <mdui-button-icon id="btn-settings" icon="menu" title="Settings"></mdui-button-icon>
+        </div>
+    </div>
+<div id="mic-prompt" style="background-color: rgba(var(--mdui-color-primary), 0.1); padding: 12px 16px; border-bottom: 1px solid rgba(var(--mdui-color-primary), 0.2);">
+    <div style="display: flex; align-items: flex-start;">
+        <mdui-icon name="error_outline" style="font-size: 18px; color: rgb(var(--mdui-color-primary)); margin-top: 2px;"></mdui-icon>
+        <div style="margin-left: 12px; font-size: 12px; line-height: 1.5; opacity: 0.9;">
+            <b style="color: rgb(var(--mdui-color-primary));" data-i18n="prompt_title">Configuration Note:</b><br>
+            <span data-i18n="prompt_desc">For games or meetings, please set your <b>Microphone Input Device</b> to:</span>
+            <span id="driver-name-display" style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 1px 4px; border-radius: 3px;">Virtual Audio Device</span>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+    <div class="status-card">
+        <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 12px; opacity: 0.6;" data-i18n="status_label">Mobile Connection</span>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <div class="dot disconnected" id="conn-dot"></div>
+                <span id="conn-text" style="font-weight: bold; font-size: 15px;" data-i18n="status_wait">Waiting for device...</span>
+            </div>
+        </div>
+        <mdui-icon name="smartphone" style="opacity: 0.7;"></mdui-icon>
+    </div>
+
+    <div id="tutorial-card" class="tutorial-card">
+        <div id="qrcode" style="padding: 8px; background: #fff; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 4px;"></div>
+        <div style="font-size: 16px; font-weight: bold; margin-top: 12px;" data-i18n="tutorial_title">Waiting for Mobile</div>
+        <div style="font-size: 13px; color: #aaa; margin-top: 8px; line-height: 1.6;" data-i18n="tutorial_desc">
+            Ensure your phone and PC are on the same Wi-Fi.<br>
+            Visit this URL on your phone:
+        </div>
+        <div id="tutorial-ip" class="tutorial-ip-box">Loading...</div>
+        <div style="color: #ff9800; font-size: 12px; margin-top: 4px;" data-i18n="tutorial_warn">
+            ⚠️ "Not Secure" warning is normal.<br>Click [Advanced] -> [Proceed].
+        </div>
+    </div>
+
+    <div id="main-control-area" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+        
+        <div style="width: 100%; margin-bottom: 20px;">
+            <mdui-select id="output-device-select" label="Audio Output Device" data-i18n="speaker_label" data-i18n-target="label" style="width: 100%;">
+                <mdui-menu-item value="default">System Default Speaker</mdui-menu-item>
+            </mdui-select>
+        </div>
+
+        <div class="control-card">
+            <mdui-icon name="volume_down" style="opacity: 0.7;"></mdui-icon>
+            <mdui-slider id="desktop-gain" min="0" max="3" step="0.1" value="1" style="flex-grow: 1;"></mdui-slider>
+            <mdui-icon name="volume_up" style="opacity: 0.7;"></mdui-icon>
+        </div>
+
+        <div class="speaker-section">
+            <div class="volume-ring initial" id="speaker-ring"></div>
+            <mdui-button-icon class="speaker-button initial" id="speaker-toggle">
+                <mdui-icon name="volume_off" id="speaker-icon" style="font-size: 40px;"></mdui-icon>
+            </mdui-button-icon>
+        </div>
+        
+        <div id="status-label" style="margin-top: 24px; color: var(--color-initial); font-weight: 500;" data-i18n="state_wait_stream">Waiting for audio stream...</div>
+    </div>
+</div>
+
+<mdui-dialog id="dialog-uninstall" headline="Uninstall Driver?" data-i18n="dialog_uninstall_title" data-i18n-target="headline">
+    <div style="line-height: 1.6; opacity: 0.8;" data-i18n="uninstall_dialog_text">
+
+    </div>
+    <mdui-button slot="action" variant="text" id="uninstall-cancel" data-i18n="cancel">Cancel</mdui-button>
+    <mdui-button slot="action" variant="tonal" id="uninstall-confirm" style="color: #ff5252;" data-i18n="dialog_confirm">Uninstall</mdui-button>
+</mdui-dialog>
+
+<mdui-dialog 
+    id="dialog-install-reminder" 
+    headline="⚠️ Important: Restore Audio" 
+    close-on-esc="false" 
+    close-on-overlay-click="false" 
+    data-i18n="reminder_title" 
+    data-i18n-target="headline"> <div id="install-reminder-text" style="line-height: 1.6; opacity: 0.8; margin-bottom: 8px;" data-i18n="reminder_desc">
+        The virtual audio cable has been configured!<br><br>Windows may have automatically switched your <b>Default Playback Device</b> to CABLE Input, causing your PC to temporarily lose sound.<br>Please click the speaker icon 🔊 in the bottom right corner of your screen and manually switch back to your original speaker.
+    </div>
+    <mdui-button slot="action" variant="tonal" id="install-reminder-ok" data-i18n="reminder_ok">
+        I have switched it back
+    </mdui-button>
+</mdui-dialog>
+
+<mdui-dialog id="dialog-about" headline="About Poros" data-i18n="dialog_about" data-i18n-target="headline" close-on-overlay-click>
+    <div style="text-align: center; padding: 10px 0;">
+        <mdui-icon name="podcasts" style="font-size: 48px; color: rgb(var(--mdui-color-primary));"></mdui-icon>
+        <div style="font-size: 20px; font-weight: bold; margin-top: 12px;">Poros Desktop</div>
+        <div id="about-version-text" style="font-size: 12px; opacity: 0.5; margin-top: 4px;">&mdash;</div>
+        
+        <div style="margin-top: 20px; font-size: 13px; line-height: 1.8; opacity: 0.8; text-align: left;">
+            Poros is a minimalist wireless microphone tool that instantly turns your phone into a high-quality microphone for your PC using WebRTC technology.
+            <br><br>
+            License: GPL-3 License
+        </div>
+
+        <div style="margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+            <mdui-button variant="outlined" href="https://github.com/timuela/Poros" target="_blank">
+                <mdui-icon name="code" slot="icon"></mdui-icon> GitHub
+            </mdui-button>
+        </div>
+    </div>
+    <mdui-button slot="action" variant="text" onclick="document.getElementById('dialog-about').open = false" data-i18n="dialog_close">Close</mdui-button>
+</mdui-dialog>
+
+<mdui-navigation-drawer id="settings-drawer" placement="right">
+    <div class="settings-panel">
+        <div class="settings-header">
+            <span data-i18n="settings_title">Settings</span>
+            <mdui-button-icon id="btn-settings-close" icon="close"></mdui-button-icon>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-label" data-i18n="settings_language">Language</div>
+            <mdui-select id="settings-language-select" value="en_us">
+                <mdui-menu-item value="en_us"><span data-i18n="lang_en">English</span></mdui-menu-item>
+                <mdui-menu-item value="zh_cn"><span data-i18n="lang_zh">中文</span></mdui-menu-item>
+                <mdui-menu-item value="vi_vn"><span data-i18n="lang_vi">Tiếng Việt</span></mdui-menu-item>
+            </mdui-select>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-label" data-i18n="settings_more">More</div>
+            <div class="settings-actions">
+                <mdui-button variant="text" id="btn-about">
+                    <mdui-icon slot="icon" name="info_outline"></mdui-icon>
+                    <span data-i18n="header_about">About</span>
+                </mdui-button>
+                <mdui-button variant="text" id="btn-uninstall" style="display: none; color: #ff5252;">
+                    <mdui-icon slot="icon" name="delete_outline"></mdui-icon>
+                    <span data-i18n="header_uninstall">Uninstall Driver</span>
+                </mdui-button>
+            </div>
+        </div>
+
+        <div class="settings-footer">
+            <span data-i18n="settings_version">Version</span>
+            <span id="settings-version-text">&mdash;</span>
+        </div>
+    </div>
+</mdui-navigation-drawer>
+
+<script>
+    mdui.setColorScheme('#4285F4');
+    let i18nData = {};
+    // Default to English; remember the user's last choice
+    let currentLang = (() => { try { return localStorage.getItem('poros_lang') || 'en_us'; } catch (e) { return 'en_us'; } })();
+    // UI elements
+    const btnAbout = document.getElementById('btn-about');
+    const dialogAbout = document.getElementById('dialog-about');
+    const appVersionLabel = document.getElementById('app-version');
+    const aboutVersionText = document.getElementById('about-version-text');
+    const btnUninstall = document.getElementById('btn-uninstall');
+    const dialogUninstall = document.getElementById('dialog-uninstall');
+    const uninstallConfirmBtn = document.getElementById('uninstall-confirm');
+    const uninstallCancelBtn = document.getElementById('uninstall-cancel');
+    const speakerBtn = document.getElementById('speaker-toggle');
+    const speakerIcon = document.getElementById('speaker-icon');
+    const speakerRing = document.getElementById('speaker-ring');
+    const statusLabel = document.getElementById('status-label');
+    const gainSlider = document.getElementById('desktop-gain');
+    const connDot = document.getElementById('conn-dot');
+    const connText = document.getElementById('conn-text');
+    const outputSelect = document.getElementById('output-device-select');
+    
+    // WebRTC & Audio variables
+    const socket = io(window.location.origin);
+    let peerConnection;
+    let audioContext, gainNode, analyser, dataArray;
+    let isPlaying = false;
+    let isConnected = false;
+    let globalAudioElement = null;
+    let platformInfo = null;
+    syncAppInfo();
+    syncPlatformInfo();
+
+
+    // Translation helper
+    function t(key) {
+        return i18nData[key] || key;
+    }
+
+    // Render page text
+    function renderI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (i18nData[key]) {
+                const target = el.getAttribute('data-i18n-target');
+                
+                // Dynamically decide what to modify based on the target
+                if (target === 'title') {
+                    el.title = i18nData[key];
+                } else if (target === 'label') {
+                    el.setAttribute('label', i18nData[key]);
+                } else if (target === 'headline') {
+                    el.setAttribute('headline', i18nData[key]);
+                } else {
+                    // By default, modify the inner HTML
+                    el.innerHTML = i18nData[key];
+                }
+            }
+        });
+        
+        const langSelect = document.getElementById('settings-language-select');
+        if (langSelect && langSelect.value !== currentLang) langSelect.value = currentLang;
+    }
+
+    // Core loading logic: asynchronously fetch JSON from the server
+    async function loadLanguage(lang) {
+        try {
+            const response = await fetch(`/lang/${lang}.json?t=${new Date().getTime()}`);
+            if (!response.ok) throw new Error('Abnormal network response');
+            
+            i18nData = await response.json();
+            currentLang = lang;
+            renderI18n(); // Redraw the UI immediately after the data is loaded
+
+            // Also notify the backend Python to update the system tray language
+            try {
+                await fetch('/api/set_lang', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lang: lang })
+                });
+            } catch (e) {
+                console.warn('Failed to notify the backend to update the language:', e);
+            }
+        } catch (error) {
+            console.error(`Failed to load language pack ${lang}.json:`, error);
+            // Fallback handling: try to fall back if the request fails
+        }
+    }
+
+    // Switch to the specified language and remember the choice
+    function setLanguage(lang) {
+        if (!lang || lang === currentLang) return;
+        try { localStorage.setItem('poros_lang', lang); } catch (e) {}
+        loadLanguage(lang);
+    }
+
+    // Set up the settings drawer
+    const settingsDrawer = document.getElementById('settings-drawer');
+    document.getElementById('btn-settings').addEventListener('click', () => { settingsDrawer.open = true; });
+    document.getElementById('btn-settings-close').addEventListener('click', () => { settingsDrawer.open = false; });
+    document.getElementById('settings-language-select').addEventListener('change', (e) => setLanguage(e.target.value));
+
+
+    // Direct LAN connection; clearing the STUN config enables instant connection
+    const rtcConfig = { iceServers: [] };
+
+    // === 1. Initialize: fetch the LAN IP and show the tutorial ===
+    fetch('/api/info').then(res => res.json()).then(data => {
+        const url = `https://${data.ip}:${data.port}`;
+        document.getElementById('tutorial-ip').innerText = url;
+        
+        // Dynamically generate the QR code
+        new QRCode(document.getElementById("qrcode"), {
+            text: url,
+            width: 140,
+            height: 140,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    });
+
+
+    // === 2. Signaling connection and state switching ===
+    socket.on('connect', () => {
+        socket.emit('join', { role: 'desktop' });
+    });
+
+    socket.on('toggle_mute', () => {
+        if (speakerBtn) speakerBtn.click();
+    });
+
+    function setMobileConnected(connected) {
+        isConnected = connected;
+        if (connected) {
+            connDot.classList.remove('disconnected');
+            connDot.classList.add('connected');
+            connText.innerText = t('status_connected');
+            connText.style.color = '#4CAF50';
+
+            // After the phone connects: hide the tutorial, show the main control area
+            document.getElementById('tutorial-card').style.display = 'none';
+            document.getElementById('main-control-area').style.display = 'flex';
+        } else {
+            connDot.classList.remove('connected');
+            connDot.classList.add('disconnected');
+            connText.innerText = t('status_wait');
+            connText.style.color = '';
+
+            // After the phone disconnects: return to the tutorial view and clean up the audio pipeline
+            document.getElementById('main-control-area').style.display = 'none';
+            document.getElementById('tutorial-card').style.display = '';
+            resetPeer();
+        }
+    }
+
+    function resetPeer() {
+        isPlaying = false;
+        try {
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
+        } catch (e) {}
+        try {
+            if (globalAudioElement) {
+                globalAudioElement.pause();
+                globalAudioElement.srcObject = null;
+                globalAudioElement = null;
+            }
+        } catch (e) {}
+        try {
+            if (audioContext) { audioContext.close(); }
+        } catch (e) {}
+        audioContext = null;
+        gainNode = null;
+        analyser = null;
+        dataArray = null;
+        speakerBtn.className = 'speaker-button initial';
+        speakerRing.className = 'volume-ring initial';
+        speakerIcon.setAttribute('name', 'volume_off');
+        statusLabel.innerText = t('state_wait_stream');
+        statusLabel.style.color = 'var(--color-initial)';
+    }
+
+    // Authoritative online state broadcast by the server (pushed on both connect and disconnect)
+    socket.on('presence', (data) => {
+        setMobileConnected(!!(data && data.mobile));
+    });
+
+    socket.on('ready', (data) => {
+        if (data.role === 'mobile') setMobileConnected(true);
+    });
+
+    // === 3. (Fix) WebRTC audio receiving logic ===
+    socket.on('offer', async (data) => {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        // Audio stream received; trigger the audio playback pipeline
+        peerConnection.ontrack = (event) => {
+            setupAudioPipeline(event.streams[0]);
+        };
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) socket.emit('ice_candidate', event.candidate);
+        };
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('answer', answer);
+    });
+
+    socket.on('ice_candidate', (data) => {
+        if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(data));
+    });
+
+btnAbout.addEventListener('click', () => {
+        dialogAbout.open = true;
+    });
+
+async function syncAppInfo() {
+        try {
+            const res = await fetch('/api/info');
+            const data = await res.json();
+            if (data.version) {
+                appVersionLabel.innerText = data.version;
+                aboutVersionText.innerText = `Version ${data.version}`;
+                const settingsVersion = document.getElementById('settings-version-text');
+                if (settingsVersion) settingsVersion.innerText = `v${data.version}`;
+            }
+        } catch (e) { console.error("Failed to get version info", e); }
+    }
+
+    async function syncPlatformInfo() {
+        try {
+            const res = await fetch('/api/platform_info');
+            platformInfo = await res.json();
+            document.getElementById('driver-name-display').innerText = platformInfo.driver_display_name;
+        } catch (e) { console.error("Failed to get platform info", e); }
+    }
+
+// Windows reports some endpoints twice: once with the name cut to roughly 31
+// characters, once in full. They are the same device, so list it once, keeping
+// the untruncated name - two entries that differ only by a cut-off tail are
+// impossible to tell apart.
+function dedupeAudioOutputs(devices) {
+    const options = [];
+    devices.forEach(device => {
+        const label = device.label || `Unknown audio device (${device.deviceId.slice(0,5)})`;
+        const lower = label.toLowerCase();
+        const twin = options.find(candidate =>
+            candidate.lower === lower
+            || (candidate.lower.length >= 30 && lower.startsWith(candidate.lower))
+            || (lower.length >= 30 && candidate.lower.startsWith(lower))
+        );
+        if (!twin) {
+            options.push({ label: label, lower: lower, deviceId: device.deviceId });
+        } else if (label.length > twin.label.length) {
+            twin.label = label;
+            twin.lower = lower;
+            twin.deviceId = device.deviceId;
+        }
+    });
+    return options;
+}
+
+async function loadAudioDevices() {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Silently request permission to get real device names
+            await navigator.mediaDevices.getUserMedia({ audio: true }); 
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+            
+            outputSelect.innerHTML = ''; 
+            let targetDeviceId = 'default'; 
+            
+            dedupeAudioOutputs(audioOutputs).forEach(option => {
+                const item = document.createElement('mdui-menu-item');
+                item.value = option.deviceId;
+                item.innerText = option.label; 
+                // Fallback if the menu is capped by the viewport width.
+                item.title = option.label;
+                outputSelect.appendChild(item);
+
+                // Smart-match CABLE Input
+                const keyword = platformInfo?.driver_match_keyword || 'cable input';
+                if (option.label.toLowerCase().includes(keyword)) {
+                    targetDeviceId = option.deviceId;
+                }
+            });
+
+            if (targetDeviceId !== 'default') {
+                outputSelect.value = targetDeviceId;
+                if (audioContext && typeof audioContext.setSinkId === 'function') {
+                    try {
+                        await audioContext.setSinkId(targetDeviceId);
+                    } catch(e) {}
+                }
+            }
+
+        } catch (err) {
+            console.log("Failed to get audio devices; permission may have been blocked", err);
+        }
+    }
+
+    // Deprecated window.onload in favor of the safer DOMContentLoaded together with the setTimeout above
+    document.addEventListener('DOMContentLoaded', () => {
+
+        loadAudioDevices();
+    });
+
+    outputSelect.addEventListener('change', async (e) => {
+        const deviceId = e.target.value;
+        if (audioContext && typeof audioContext.setSinkId === 'function') {
+            try {
+                await audioContext.setSinkId(deviceId);
+            } catch (err) {}
+        }
+    });
+
+    window.addEventListener('load', loadAudioDevices);
+
+    // === 5. Web Audio API playback pipeline ===
+    function setupAudioPipeline(stream) {
+        globalAudioElement = new Audio();
+        globalAudioElement.srcObject = stream;
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        gainNode = audioContext.createGain();
+        analyser = audioContext.createAnalyser();
+        
+        const source = audioContext.createMediaStreamSource(stream);
+        
+        source.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        gainNode.gain.value = gainSlider.value;
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        // If the dropdown has already auto-selected CABLE, apply it here as well
+        if (audioContext.setSinkId && outputSelect.value !== 'default') {
+             audioContext.setSinkId(outputSelect.value);
+        }
+
+        isPlaying = true;
+        updateUIState('active');
+        drawVolume();
+
+        if (audioContext.state === 'suspended') {
+            statusLabel.innerText = t('state_click_resume');
+            statusLabel.style.color = '#ff9800'; 
+        }
+    }
+
+    gainSlider.addEventListener('input', (e) => {
+        if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
+    });
+
+    speakerBtn.addEventListener('click', async () => {
+        if (!audioContext) return;
+        
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        if (isPlaying) {
+            isPlaying = false;
+            gainNode.gain.value = 0; 
+            updateUIState('muted');
+        } else {
+            isPlaying = true;
+            gainNode.gain.value = gainSlider.value; 
+            updateUIState('active');
+            drawVolume();
+        }
+        
+        // Sync the state to the backend Python to update the tray menu text
+        try {
+            await fetch('/api/sync_mute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ muted: !isPlaying })
+            });
+        } catch (e) {
+            console.warn('Failed to sync mute state:', e);
+        }
+    });
+
+    function drawVolume() {
+        if (!isPlaying) return;
+        requestAnimationFrame(drawVolume);
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+        let average = sum / dataArray.length;
+        let scale = 1 + (Math.max(0, average - 10) / 100); 
+        speakerRing.style.transform = `scale(${scale})`;
+    }
+
+    function updateUIState(state) {
+        speakerBtn.className = `speaker-button ${state}`;
+        speakerRing.className = `volume-ring ${state}`;
+        
+        if (state === 'active') {
+            speakerIcon.setAttribute('name', 'volume_up');
+            statusLabel.innerText = '';
+            statusLabel.style.color = 'rgb(var(--mdui-color-primary))';
+        } else if (state === 'muted') {
+            speakerIcon.setAttribute('name', 'volume_off');
+            statusLabel.innerText = t('state_muted');
+            statusLabel.style.color = 'var(--color-muted)';
+        }
+    }
+
+// === 6. Uninstall driver logic (MDUI Dialog version) ===
+
+    // Click the trash icon: open the dialog
+    btnUninstall.addEventListener('click', () => {
+        dialogUninstall.open = true;
+    });
+
+    // Click Cancel in the dialog: close the dialog
+    uninstallCancelBtn.addEventListener('click', () => {
+        dialogUninstall.open = false;
+    });
+
+    // Click Confirm in the dialog: start the uninstall process
+
+    uninstallConfirmBtn.addEventListener('click', async () => {
+        // 1. Close the confirmation dialog
+        dialogUninstall.open = false; 
+
+        // 2. Bring up the full-screen overlay (reusing the install overlay)
+        const overlay = document.getElementById('install-overlay');
+        const spinner = document.getElementById('install-spinner');
+        const successIcon = document.getElementById('install-success-icon');
+        const errorIcon = document.getElementById('install-error-icon');
+        const title = document.getElementById('install-title');
+        const desc = document.getElementById('install-desc');
+
+        // Initialize the overlay UI to the "loading" state
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+        spinner.style.display = 'inline-block';
+        successIcon.style.display = 'none';
+        errorIcon.style.display = 'none';
+        
+        title.innerText = t('uninstall_title_doing');
+        title.style.color = 'var(--mdui-color-on-background)'; // Restore the default text color
+        desc.innerText = t('uninstall_desc_doing');
+
+        try {
+            // 3. Call the backend uninstall endpoint
+            const response = await fetch('/api/uninstall_driver', { method: 'POST' });
+            const result = await response.json();
+
+            if (result.success) {
+                // Uninstall success animation
+                spinner.style.display = 'none';
+                successIcon.style.display = 'inline-block';
+                title.innerText = t('uninstall_title_success');
+                title.style.color = '#4CAF50';
+                desc.innerHTML = t('uninstall_desc_success');
+                
+                // [Core fix] Tell the backend to kill the process proactively; no more JS errors
+                fetch('/api/exit', { method: 'POST' });
+                
+                // The UI stays on the farewell message; the backend closes the window after 1 second
+            } else {
+                // Uninstall failure animation
+                spinner.style.display = 'none';
+                errorIcon.style.display = 'inline-block';
+                title.innerText = t('uninstall_title_fail');
+                title.style.color = '#ff5252';
+                desc.innerHTML = result.msg;
+                
+                // Close the overlay after 3 seconds so the user can keep interacting
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.style.display = 'none', 300);
+                }, 3000);
+            }
+        } catch (err) {
+            spinner.style.display = 'none';
+            errorIcon.style.display = 'inline-block';
+            title.innerText = t('uninstall_title_lost');
+            title.style.color = '#ff5252';
+            desc.innerText = t('uninstall_desc_lost');
+        }
+    });
+
+// === 7. Startup self-check and automated install logic ===
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLanguage(currentLang);
+        const overlay = document.getElementById('install-overlay');
+        const spinner = document.getElementById('install-spinner');
+        const successIcon = document.getElementById('install-success-icon');
+        const errorIcon = document.getElementById('install-error-icon');
+        const title = document.getElementById('install-title');
+        const desc = document.getElementById('install-desc');
+        
+        // New reminder dialog elements
+        const dialogInstallReminder = document.getElementById('dialog-install-reminder');
+        const installReminderOkBtn = document.getElementById('install-reminder-ok');
+
+        try {
+            // 1. Check whether it is already installed
+            const checkRes = await fetch('/api/check_driver');
+            const checkData = await checkRes.json();
+
+            if (!checkData.installed) {
+                // Not installed: keep the uninstall button hidden and start the install animation
+                overlay.style.display = 'flex';
+                title.innerText = t('install_title_doing');
+                
+                const installRes = await fetch('/api/install_driver', { method: 'POST' });
+                const installData = await installRes.json();
+
+                if (installData.success) {
+                    // Install success animation
+                    spinner.style.display = 'none';
+                    successIcon.style.display = 'inline-block';
+                    title.innerText = t('install_title_success');
+                    title.style.color ='#4CAF50';
+                    desc.innerText = t('install_desc_success');
+                    
+                    // Close the overlay after 1.5 seconds and show the audio device restore reminder!
+                    setTimeout(() => {
+                        overlay.style.opacity = '0';
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                            
+                            // Show the reminder dialog and fill in the platform-specific text
+                            const reminderText = document.getElementById('install-reminder-text');
+                            if (platformInfo?.post_install_warning) {
+                                reminderText.innerText = platformInfo.post_install_warning;
+                                dialogInstallReminder.open = true;
+                            } else {
+                                // If there is no warning text, skip the dialog
+                                btnUninstall.style.display = '';
+                                loadAudioDevices();
+                            }
+                            
+                        }, 300);
+                    }, 1500);
+                } else {
+                    // Install failure state
+                    spinner.style.display = 'none';
+                    errorIcon.style.display = 'inline-block';
+                    title.innerText = t('install_title_fail');
+                    title.style.color = '#ff5252';
+                    desc.innerHTML = installData.msg;
+                }
+            } else {
+                // Already installed: show the uninstall button and load devices directly
+                btnUninstall.style.display = ''; // Remove the hidden style
+                loadAudioDevices();
+            }
+        } catch (err) {
+            console.error("Environment self-check failed", err);
+            btnUninstall.style.display = ''; // Fallback handling
+            loadAudioDevices(); 
+        }
+
+        // [Core addition] Listen for the confirm button of the reminder dialog
+        installReminderOkBtn.addEventListener('click', () => {
+            dialogInstallReminder.open = false; // Close the dialog
+            btnUninstall.style.display = '';     // Show the uninstall button in the top right
+            loadAudioDevices();                 // Continue loading audio devices and the main UI
+        });
+    });
+</script>
+</body>
+</html>

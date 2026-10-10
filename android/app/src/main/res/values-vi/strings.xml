@@ -1,0 +1,75 @@
+<resources>
+    <string name="app_name">Poros</string>
+
+    <string name="notification_channel_name">Micrô</string>
+    <string name="notification_channel_desc">Duy trì truyền micrô khi màn hình tắt</string>
+    <string name="notification_title">Poros đang truyền</string>
+    <string name="notification_text">Micrô đang hoạt động</string>
+    <string name="notification_action_mute">Tắt tiếng</string>
+    <string name="notification_action_unmute">Bật tiếng</string>
+
+    <string name="host_status">Kết nối PC</string>
+    <string name="hosts">Máy chủ</string>
+    <string name="hosts_empty">Chưa có máy chủ — nhấn Thêm máy chủ</string>
+    <string name="host_add">Thêm máy chủ</string>
+    <string name="host_add_title">Thêm máy chủ</string>
+    <string name="host_edit_title">Sửa máy chủ</string>
+    <string name="host_save">Lưu</string>
+    <string name="host_name">Tên</string>
+    <string name="host_ip">IP hoặc IP:cổng</string>
+    <string name="host_description">Mô tả (không bắt buộc)</string>
+    <string name="host_delete">Xóa máy chủ</string>
+    <string name="cancel">Hủy</string>
+    <string name="address_label">Địa chỉ PC (IP:cổng)</string>
+    <string name="address_hint">192.168.1.10 (cổng mặc định 5000)</string>
+    <string name="connect">Kết nối</string>
+    <string name="disconnect">Ngắt kết nối</string>
+    <string name="gain">Độ lợi</string>
+    <string name="mute">Tắt tiếng</string>
+    <string name="unmute">Bật tiếng</string>
+
+    <string name="status_idle">Chưa kết nối</string>
+    <string name="status_connecting">Đang kết nối…</string>
+    <string name="status_connected">Đã kết nối</string>
+    <string name="status_streaming">Đang truyền</string>
+    <string name="status_muted">Đã tắt tiếng</string>
+    <string name="status_error">Lỗi</string>
+
+    <string name="gain_value">%1$.1f×</string>
+
+    <string name="error_invalid_address">Nhập IP:cổng hợp lệ</string>
+    <string name="error_mic_permission">Cần quyền truy cập micrô</string>
+    <string name="error_notification_permission">Cần quyền thông báo để truyền trong nền</string>
+
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_more">Thêm</string>
+    <string name="settings_version">Phiên bản</string>
+    <string name="settings_close">Đóng</string>
+    <string name="about_body">WebRTC qua mạng LAN — không đám mây, không tài khoản.</string>
+    <string name="lang_en">English</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_vi">Tiếng Việt</string>
+
+    <string name="pin_label">PIN</string>
+    <string name="pin_hint">6 chữ số hiển thị trên PC</string>
+    <string name="error_pin_wrong">Sai mã PIN — kiểm tra mã hiển thị trên PC</string>
+
+    <string name="camera_title">Camera</string>
+    <string name="camera_button">Camera</string>
+    <string name="camera_status_preparing">Đang chuẩn bị camera…</string>
+    <string name="camera_status_live">Đang phát tới PC</string>
+    <string name="camera_status_stopped">Camera đã dừng</string>
+    <string name="camera_status_error">Lỗi camera</string>
+    <string name="camera_swap">Đổi</string>
+    <string name="camera_torch">Đèn</string>
+    <string name="camera_flip">Lật</string>
+    <string name="camera_rotate">Xoay</string>
+    <string name="camera_close">Đóng</string>
+    <string name="camera_error_no_host">Hãy đặt địa chỉ PC trước</string>
+    <string name="camera_error_permission">Cần quyền camera</string>
+
+    <string name="notification_text_camera">Micrô và camera đang hoạt động</string>
+    <string name="notification_action_camera_on">Bật camera</string>
+    <string name="notification_action_camera_off">Tắt camera</string>
+</resources>

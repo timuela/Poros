@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en" class="mdui-theme-dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Poros - Client</title>
+
+    <link rel="stylesheet" href="./lib/mdui.css">
+    <script src="./lib/mdui.global.js"></script>
+    <link href="./lib/mdui-icons.css" rel="stylesheet">
+    <script src="./lib/socket.io.min.js"></script>
+
+    <style>
+        :root {
+            --color-initial: #757575;
+            --color-muted: rgb(255, 179, 174);
+            --color-bg: #121212;
+            --color-card: #1e1e1e;
+            --accent: rgb(var(--mdui-color-primary));
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            margin: 0;
+            background-color: var(--color-bg);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* One screen, no scroll: the mic pad takes the leftover space. */
+        .app-container {
+            height: 100dvh;
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 14px 20px 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .header { display: flex; align-items: center; gap: 8px; }
+        .header .title { font-size: 20px; font-weight: 500; }
+        .header .version { font-size: 11px; opacity: 0.5; font-family: monospace; }
+        .header .spacer { flex: 1; }
+
+        .card {
+            background-color: var(--color-card);
+            border-radius: 20px;
+            padding: 14px 18px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .status-card { display: flex; align-items: center; justify-content: space-between; }
+        .status-title { font-size: 13px; opacity: 0.6; display: block; }
+        .status-value { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-weight: bold; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #888; flex: none; }
+        .dot.connected { background: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
+
+        .gain-head { display: flex; justify-content: space-between; font-size: 14px; opacity: 0.8; margin-bottom: 2px; }
+
+        .mic-pad {
+            flex: 1;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mic-wrap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-height: 340px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mic-halo {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--color-initial);
+            opacity: 0;
+            transform: scale(1);
+            transition: transform 0.06s linear, opacity 0.06s linear;
+            pointer-events: none;
+        }
+        .mic-halo.active { background: var(--accent); }
+        .mic-halo.muted { background: var(--color-muted); }
+
+        .mic-button {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            background: var(--color-initial);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .mic-button mdui-icon { font-size: 30px; }
+        .mic-button.active { background: var(--accent); color: rgb(var(--mdui-color-on-primary)); }
+        .mic-button.muted { background: var(--color-muted); color: #4a0005; }
+
+        .connect-button {
+            height: 52px;
+            width: 100%;
+            border: none;
+            border-radius: 26px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        .connect-button.active { background: #2a2a2a; color: rgba(255, 255, 255, 0.9); }
+        .connect-button:disabled { opacity: 0.6; }
+
+        .hint { min-height: 16px; text-align: center; font-size: 13px; }
+
+        .settings-panel {
+            width: 300px; max-width: 85vw; height: 100%; padding: 20px;
+            box-sizing: border-box; display: flex; flex-direction: column; gap: 22px;
+        }
+        .settings-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 18px; font-weight: bold; color: rgba(255,255,255,0.9);
+        }
+        .settings-group { display: flex; flex-direction: column; }
+        .settings-label {
+            font-size: 12px; opacity: 0.55; margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        #settings-language-select { width: 100%; }
+        .settings-footer {
+            margin-top: auto; font-size: 12px; opacity: 0.5;
+            display: flex; justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <mdui-icon name="podcasts" style="font-size: 20px; color: var(--accent);"></mdui-icon>
+        <span class="title">Poros</span>
+        <span class="version" id="app-version">&mdash;</span>
+        <span class="spacer"></span>
+        <mdui-button-icon id="btn-settings" icon="menu"></mdui-button-icon>
+    </div>
+
+    <div class="card status-card">
+        <div>
+            <span class="status-title" data-i18n="m_host_status">Host Connection</span>
+            <span class="status-value">
+                <span class="dot" id="connection-dot"></span>
+                <span id="connection-text" data-i18n="m_wait_conn">Waiting for connection...</span>
+            </span>
+        </div>
+        <mdui-icon name="computer" style="opacity: 0.7;"></mdui-icon>
+    </div>
+
+    <mdui-text-field id="pin-input" label="PIN" data-i18n="m_pin_label" data-i18n-target="label" type="number" style="width: 100%;"></mdui-text-field>
+
+    <div class="card">
+        <div class="gain-head">
+            <span data-i18n="m_gain">Gain</span>
+            <span id="gain-value">1.0×</span>
+        </div>
+        <mdui-slider id="gain-slider" min="0" max="3" step="0.1" value="1" style="width: 100%;"></mdui-slider>
+    </div>
+
+    <div class="mic-pad">
+        <div class="mic-wrap">
+            <div class="mic-halo" id="mic-halo-outer"></div>
+            <div class="mic-halo" id="mic-halo"></div>
+            <button class="mic-button" id="mic-toggle">
+                <mdui-icon name="mic_none" id="mic-icon"></mdui-icon>
+            </button>
+        </div>
+    </div>
+
+    <div class="hint" id="status-label" data-i18n="m_tap_connect"></div>
+    <button class="connect-button" id="connect-button" data-i18n="m_connect">Connect</button>
+</div>
+
+<mdui-navigation-drawer id="settings-drawer" placement="right">
+    <div class="settings-panel">
+        <div class="settings-header">
+            <span data-i18n="settings_title">Settings</span>
+            <mdui-button-icon id="btn-settings-close" icon="close"></mdui-button-icon>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-label" data-i18n="settings_language">Language</div>
+            <mdui-select id="settings-language-select" value="en_us">
+                <mdui-menu-item value="en_us"><span data-i18n="lang_en">English</span></mdui-menu-item>
+                <mdui-menu-item value="zh_cn"><span data-i18n="lang_zh">中文</span></mdui-menu-item>
+                <mdui-menu-item value="vi_vn"><span data-i18n="lang_vi">Tiếng Việt</span></mdui-menu-item>
+            </mdui-select>
+        </div>
+
+        <div class="settings-footer">
+            <span data-i18n="settings_version">Version</span>
+            <span id="settings-version-text">&mdash;</span>
+        </div>
+    </div>
+</mdui-navigation-drawer>
+
+<script>
+    mdui.setColorScheme('#4285F4');
+
+    const micBtn = document.getElementById('mic-toggle');
+    const micIcon = document.getElementById('mic-icon');
+    const micHalo = document.getElementById('mic-halo');
+    const micHaloOuter = document.getElementById('mic-halo-outer');
+    const statusLabel = document.getElementById('status-label');
+    const connectBtn = document.getElementById('connect-button');
+    const gainSlider = document.getElementById('gain-slider');
+    const gainValue = document.getElementById('gain-value');
+
+    // autoConnect:false - nothing happens until the user presses Connect.
+    const socket = io(window.location.origin, { autoConnect: false });
+    const rtcConfig = { iceServers: [] };
+    let peerConnection = null;
+    let desktopOnline = false;
+    let offerSent = false;
+
+    let currentState = 'idle'; // idle | connecting | active | muted
+    let audioContext, analyser, dataArray, source, gainNode, micStream;
+    let animationId = null;
+    let wakeLock = null;
+
+    let i18nData = {};
+    let currentLang = (() => { try { return localStorage.getItem('poros_lang') || 'en_us'; } catch (e) { return 'en_us'; } })();
+
+    function t(key) { return i18nData[key] || key; }
+
+    function renderI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (i18nData[key]) el.innerHTML = i18nData[key];
+        });
+        const langSelect = document.getElementById('settings-language-select');
+        if (langSelect && langSelect.value !== currentLang) langSelect.value = currentLang;
+        updateUI();
+    }
+
+    async function loadLanguage(lang) {
+        try {
+            const response = await fetch(`/lang/${lang}.json?t=${new Date().getTime()}`);
+            if (!response.ok) throw new Error('bad response');
+            i18nData = await response.json();
+            currentLang = lang;
+            renderI18n();
+        } catch (error) {
+            console.error(`Failed to load ${lang}.json:`, error);
+        }
+    }
+
+    function setLanguage(lang) {
+        if (!lang || lang === currentLang) return;
+        try { localStorage.setItem('poros_lang', lang); } catch (e) {}
+        loadLanguage(lang);
+    }
+
+    const settingsDrawer = document.getElementById('settings-drawer');
+    document.getElementById('btn-settings').addEventListener('click', () => { settingsDrawer.open = true; });
+    document.getElementById('btn-settings-close').addEventListener('click', () => { settingsDrawer.open = false; });
+    document.getElementById('settings-language-select').addEventListener('change', (e) => setLanguage(e.target.value));
+
+    function pinValue() {
+        const el = document.getElementById('pin-input');
+        return el ? (el.value || '').trim() : '';
+    }
+
+    function setStatus(text, color) {
+        const el = document.getElementById('connection-text');
+        const dot = document.getElementById('connection-dot');
+        el.innerText = text;
+        el.style.color = color || '';
+        dot.classList.toggle('connected', color === '#4CAF50');
+    }
+
+    function updateUI() {
+        connectBtn.classList.toggle('active', currentState === 'active' || currentState === 'muted');
+        connectBtn.disabled = currentState === 'connecting';
+        if (currentState === 'active' || currentState === 'muted') {
+            connectBtn.innerText = t('m_disconnect');
+        } else if (currentState === 'connecting') {
+            connectBtn.innerText = t('m_connecting');
+        } else {
+            connectBtn.innerText = t('m_connect');
+        }
+
+        micBtn.className = 'mic-button ' + currentState;
+        micHalo.className = 'mic-halo ' + currentState;
+        micHaloOuter.className = 'mic-halo ' + currentState;
+
+        if (currentState === 'active') {
+            micIcon.setAttribute('name', 'mic');
+            statusLabel.innerText = t('m_mic_active');
+            statusLabel.style.color = 'var(--accent)';
+        } else if (currentState === 'muted') {
+            micIcon.setAttribute('name', 'mic_off');
+            statusLabel.innerText = t('m_mic_muted');
+            statusLabel.style.color = 'var(--color-muted)';
+        } else if (currentState === 'connecting') {
+            micIcon.setAttribute('name', 'mic_none');
+            statusLabel.innerText = t('m_connecting');
+            statusLabel.style.color = '';
+        } else {
+            micIcon.setAttribute('name', 'mic_none');
+            statusLabel.innerText = t('m_tap_connect');
+            statusLabel.style.color = '';
+        }
+    }
+
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+        }
+    }
+    function releaseWakeLock() {
+        if (wakeLock !== null) { wakeLock.release().then(() => { wakeLock = null; }); }
+    }
+
+    // ---- level feedback ----------------------------------------------------
+    function drawLevel() {
+        if (!micStream) return;
+        animationId = requestAnimationFrame(drawLevel);
+        if (currentState === 'muted' || !analyser) {
+            resetHalos();
+            return;
+        }
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            const v = (dataArray[i] - 128) / 128;
+            sum += v * v;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        // Drop the noise floor and scale hard, or normal speech barely moves it.
+        const level = Math.max(0, Math.min(1, (rms - 0.01) * 8));
+        micHalo.style.opacity = Math.min(0.9, 0.2 + level * 0.75).toFixed(3);
+        micHalo.style.transform = `scale(${(1 + level * 2.6).toFixed(3)})`;
+        micHaloOuter.style.opacity = Math.min(0.5, level * 0.5).toFixed(3);
+        micHaloOuter.style.transform = `scale(${(1 + level * 3.2).toFixed(3)})`;
+    }
+    function resetHalos() {
+        micHalo.style.opacity = '0';
+        micHalo.style.transform = 'scale(1)';
+        micHaloOuter.style.opacity = '0';
+        micHaloOuter.style.transform = 'scale(1)';
+    }
+    function stopLevel() {
+        if (animationId !== null) { cancelAnimationFrame(animationId); animationId = null; }
+        resetHalos();
+    }
+
+    // ---- session -----------------------------------------------------------
+    async function startCapture() {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: {
+            echoCancellation: true, noiseSuppression: true, autoGainControl: false
+        }});
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        source = audioContext.createMediaStreamSource(micStream);
+        gainNode = audioContext.createGain();
+        gainNode.gain.value = parseFloat(gainSlider.value);
+        source.connect(gainNode);
+        gainNode.connect(analyser);
+
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) socket.emit('ice_candidate', event.candidate);
+        };
+
+        const dest = audioContext.createMediaStreamDestination();
+        gainNode.connect(dest);
+        dest.stream.getTracks().forEach(track => peerConnection.addTrack(track, dest.stream));
+
+        peerConnection.oniceconnectionstatechange = onIceStateChanged;
+    }
+
+    function onIceStateChanged() {
+        if (!peerConnection) return;
+        const s = peerConnection.iceConnectionState;
+        if (s === 'connected' || s === 'completed') {
+            if (currentState !== 'active' && currentState !== 'muted') {
+                currentState = 'active';
+                updateUI();
+            }
+            setStatus(t('m_connected'), '#4CAF50');
+            requestWakeLock();
+        } else if (s === 'failed' || s === 'disconnected') {
+            offerSent = false;
+            desktopOnline = false;
+            if (currentState !== 'muted') setStatus(t('m_connecting'), '#ff9800');
+        }
+    }
+
+    // Only negotiate once the host is actually present: the socket being open
+    // does not mean anything is listening on the other end yet.
+    function maybeSendOffer() {
+        if (offerSent || !socket.connected || !peerConnection || !desktopOnline) return;
+        offerSent = true;
+        peerConnection.createOffer({ iceRestart: true })
+            .then(offer => peerConnection.setLocalDescription(offer))
+            .then(() => socket.emit('offer', { type: 'offer', sdp: peerConnection.localDescription.sdp }))
+            .catch(() => { offerSent = false; });
+    }
+
+    function teardown() {
+        stopLevel();
+        releaseWakeLock();
+        try { if (peerConnection) peerConnection.close(); } catch (e) {}
+        peerConnection = null;
+        offerSent = false;
+        desktopOnline = false;
+        try { if (micStream) micStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+        micStream = null;
+        try { if (audioContext) audioContext.close(); } catch (e) {}
+        audioContext = null; analyser = null; dataArray = null; source = null; gainNode = null;
+    }
+
+    async function connect() {
+        if (currentState !== 'idle') return;
+        currentState = 'connecting';
+        setStatus(t('m_wait_conn'));
+        updateUI();
+        try {
+            await startCapture();
+        } catch (err) {
+            currentState = 'idle';
+            teardown();
+            updateUI();
+            mdui.alert({ headline: t('m_alert_title'), description: t('m_alert_desc'), confirmText: t('m_alert_ok') });
+            return;
+        }
+        drawLevel();
+        socket.connect();
+    }
+
+    function disconnect() {
+        socket.disconnect();
+        teardown();
+        currentState = 'idle';
+        setStatus(t('m_wait_conn'));
+        updateUI();
+    }
+
+    connectBtn.addEventListener('click', () => {
+        if (currentState === 'active' || currentState === 'muted') disconnect();
+        else connect();
+    });
+
+    socket.on('connect', () => {
+        desktopOnline = false;
+        offerSent = false;
+        socket.emit('join', { role: 'mobile', pin: pinValue() });
+        // The signaling socket is up, but nothing is receiving yet - stay yellow
+        // until the WebRTC connection is actually established.
+        setStatus(t('m_connecting'), '#ff9800');
+        updateUI();
+    });
+
+    socket.on('presence', (data) => {
+        desktopOnline = !!(data && data.desktop);
+        maybeSendOffer();
+    });
+
+    socket.on('ready', (data) => {
+        if (data && data.role === 'desktop') {
+            desktopOnline = true;
+            maybeSendOffer();
+        }
+    });
+
+    socket.on('disconnect', () => {
+        if (currentState === 'active' || currentState === 'muted') {
+            setStatus(t('m_wait_conn'));
+        }
+    });
+
+    socket.on('auth_failed', () => {
+        setStatus(t('m_pin_required'), '#ff9800');
+        disconnect();
+        mdui.alert({ headline: t('m_pin_title'), description: t('m_pin_wrong'), confirmText: t('m_alert_ok') });
+    });
+
+    socket.on('answer', async (data) => {
+        if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(data));
+    });
+
+    socket.on('ice_candidate', (data) => {
+        if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(data));
+    });
+
+    micBtn.addEventListener('click', () => {
+        if (currentState === 'active') {
+            currentState = 'muted';
+            if (gainNode) gainNode.gain.value = 0;
+            releaseWakeLock();
+            updateUI();
+        } else if (currentState === 'muted') {
+            currentState = 'active';
+            if (gainNode) gainNode.gain.value = parseFloat(gainSlider.value);
+            requestWakeLock();
+            updateUI();
+            drawLevel();
+        }
+    });
+
+    gainSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        gainValue.innerText = val.toFixed(1) + '×';
+        if (gainNode && currentState === 'active') gainNode.gain.value = val;
+    });
+
+    async function syncAppInfo() {
+        try {
+            const response = await fetch(`/api/info?t=${new Date().getTime()}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const label = document.getElementById('app-version');
+            if (label && data.version) label.innerText = data.version;
+            const settingsVersion = document.getElementById('settings-version-text');
+            if (settingsVersion && data.version) settingsVersion.innerText = `v${data.version}`;
+        } catch (error) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLanguage(currentLang);
+        syncAppInfo();
+        updateUI();
+    });
+
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible' && currentState === 'active') {
+            await requestWakeLock();
+        }
+    });
+
+    // Never auto-connect: the page only joins the host after Connect is pressed.
+    window.addEventListener('pagehide', teardown);
+</script>
+
+</body>
+</html>

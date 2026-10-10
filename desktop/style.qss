@@ -1,0 +1,248 @@
+* {
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+QMainWindow, #centralWidget {
+    background-color: #121212;
+}
+
+QLabel {
+    color: #e6e6e6;
+}
+
+#headerTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+#versionLabel {
+    color: #8a8a8a;
+    font-size: 11px;
+    font-family: monospace;
+}
+
+#card, #tutorialCard {
+    background-color: #1e1e1e;
+    border-radius: 16px;
+}
+
+#tutorialCard {
+    border: 1px dashed #444444;
+}
+
+#statusTitle {
+    color: #9a9a9a;
+    font-size: 12px;
+}
+
+#statusText {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+#gainValue, #hintLabel {
+    color: #9a9a9a;
+    font-size: 12px;
+}
+
+#addressButton, #addressButtonSelected {
+    background-color: #111111;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+#addressButton:hover {
+    border-color: #4285F4;
+}
+
+#copyButton {
+    background-color: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #cccccc;
+}
+
+#copyButton:hover {
+    border-color: #4285F4;
+    color: #ffffff;
+}
+
+#addressButtonSelected {
+    border-color: #4285F4;
+    background-color: #14243d;
+}
+
+QSpinBox {
+    background-color: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: #e6e6e6;
+    min-width: 76px;
+}
+
+#warnLabel {
+    color: #ff9800;
+    font-size: 11px;
+}
+
+QComboBox {
+    background-color: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 10px;
+    padding: 8px 28px 8px 12px;
+    color: #e6e6e6;
+}
+
+/* The default drop-down button paints its own square box over the rounded
+   border. Drop the box but leave the native arrow where the style puts it. */
+QComboBox::drop-down {
+    border: none;
+    background: transparent;
+}
+
+QComboBox:hover {
+    border-color: #4285F4;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1e1e1e;
+    color: #e6e6e6;
+    selection-background-color: #4285F4;
+    border: 1px solid #333333;
+}
+
+QSlider::groove:horizontal {
+    height: 4px;
+    background: #333333;
+    border-radius: 2px;
+}
+
+QSlider::sub-page:horizontal {
+    background: #4285F4;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: #4285F4;
+    width: 16px;
+    margin: -6px 0;
+    border-radius: 8px;
+}
+
+QPushButton#flatButton {
+    background-color: transparent;
+    border: 1px solid #333333;
+    border-radius: 12px;
+    color: #aaaaaa;
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+QPushButton#flatButton:hover {
+    border-color: #4285F4;
+    color: #ffffff;
+}
+
+/* A checkable flat button (AutoFocus) has to look ON while it is on. */
+QPushButton#flatButton:checked {
+    background-color: #4285F4;
+    border-color: #4285F4;
+    color: #ffffff;
+}
+
+QPushButton#flatButton:checked:hover {
+    background-color: #5a95f5;
+    border-color: #5a95f5;
+}
+
+/* A disabled slider must read as unavailable, not merely a bit dimmer. */
+QSlider::groove:horizontal:disabled {
+    background: #262626;
+}
+
+QSlider::sub-page:horizontal:disabled {
+    background: #3a3a3a;
+}
+
+QSlider::handle:horizontal:disabled {
+    background: #4a4a4a;
+}
+
+QPushButton#primaryButton {
+    background-color: #4285F4;
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #5a95f5;
+}
+
+QPushButton#primaryButton:disabled {
+    background-color: #2a2a2a;
+    color: #777777;
+}
+
+QPushButton#dangerButton {
+    background-color: #2a2a2a;
+    color: #e6e6e6;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 15px;
+}
+
+QPushButton#dangerButton:hover {
+    background-color: #3a3a3a;
+}
+
+QScrollBar:vertical {
+    background: #121212;
+    width: 10px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #3a3a3a;
+    border-radius: 5px;
+    min-height: 24px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #4a4a4a;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+QMenu {
+    background-color: #1e1e1e;
+    color: #e6e6e6;
+    border: 1px solid #333333;
+}
+
+QMenu::item:selected {
+    background-color: #4285F4;
+}
+
+QMessageBox {
+    background-color: #1e1e1e;
+}
