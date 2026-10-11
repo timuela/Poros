@@ -13,6 +13,16 @@
 
 ---
 
+## What it looks like
+
+**Desktop** — waiting for your phone on the left, streaming on the right:
+
+<img src="screenshots/desktop.png" width="820" alt="Poros on the PC: waiting for a phone, and streaming from one">
+
+**Android**
+
+<img src="screenshots/android.png" width="320" alt="Poros on the phone: microphone and camera buttons">
+
 ## Usage
 
 **Just a web page** Open the IP showed on the desktop app via browser on the phone and you have a microphone. No camera tho.
