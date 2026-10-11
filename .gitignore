@@ -5,3 +5,4 @@ __pycache__/
 .commandcode
 .venv/
 android/local.properties
+!*.dll

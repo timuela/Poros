@@ -5,60 +5,47 @@
   <p>No account. Nothing leaves your Wi‑Fi.</p>
 
   <p>
-    <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square" alt="Platform">
+    <img src="https://img.shields.io/badge/Host-Windows%2064--bit-blue?style=flat-square" alt="Host">
+    <img src="https://img.shields.io/badge/Phone-Android%208%2B-green?style=flat-square" alt="Phone">
     <img src="https://img.shields.io/badge/License-GPLv3-green?style=flat-square" alt="License">
   </p>
 </div>
 
 ---
 
-## What is this?
+## Usage
 
-Your desktop either has no microphone, or a poor one, or no camera worth using. Poros turns the
-phone you already own into both:
+**Just a web page** Open the IP showed on the desktop app via browser on the phone and you have a microphone. No camera tho.
 
-- **A microphone** — your voice goes from the phone into Discord, Zoom, OBS, in‑game chat, anything
-  that lets you pick a microphone.
-- **A camera** — the phone camera streams to the PC and appears as a normal webcam, so meetings,
-  OBS and browsers can use it directly.
+**The Poros app.** Install `Poros-Client-<version>.apk` for mic and camera.
 
-Everything travels phone → PC over your own Wi‑Fi, peer‑to‑peer. There is no account and no cloud.
+| | Web page | Poros app |
+| --- | --- | --- |
+| Microphone | Yes | Yes |
+| **Camera** | **No** | **Yes** |
+| Keeps working when the phone screen locks | **No** | **Yes** |
 
-- **Nothing to install on the phone for the microphone** — the phone can just open a web page.
-- **Nothing goes over the internet.** Audio and video stay on the local network.
-- **Works with any app** that lets you choose a microphone or a camera.
+So: use the web page for a quick microphone, install the app for camera work and long calls.
 
 ## Getting started
 
-**You need:** a Windows, Linux or macOS PC, a phone, and both on the same Wi‑Fi.
+**You need:** a Windows 64‑bit PC, an Android phone (8.0 or newer), and both on the same Wi‑Fi.
 
-**1. Download Poros for your PC** from the [Releases page](https://github.com/timuela/Poros/releases):
+**1. Download** from [Releases](https://github.com/timuela/Poros/releases):
 
-| Your PC | File | What to do |
-| --- | --- | --- |
-| Windows (64-bit) | `Poros-Host-Setup-<version>-windows-x64.exe` | Run it — installs with a Start Menu shortcut |
-| Windows (64-bit) | `Poros-Host-Portable-<version>-windows-x64.exe` | One single file — just run it, nothing to unpack |
-| Linux | `Poros-Host-<version>-linux-x64.tar.gz` | Extract, then run `Poros` |
-| macOS (Apple silicon) | `Poros-Host-<version>-macos-arm64.tar.gz` | Extract, then run `Poros` |
-| macOS (Intel) | `Poros-Host-<version>-macos-x64.tar.gz` | Extract, then run `Poros` |
+**2. Run Poros on the PC.** The first time, it installs a virtual audio device and Windows asks for
+permission. Say yes. This takes a few seconds.
 
-**2. Run it.** Poros needs a virtual audio device to play into, and sets one up like this:
+**3. Connect the phone.** Either:
 
-- **Windows** — installs it for you on first launch (10–20 seconds), and Windows asks for
-  permission. Say yes.
-- **Linux** — creates one instantly.
-- **macOS** — install [BlackHole](https://github.com/ExistentialAudio/BlackHole) first:
-  `brew install blackhole-2ch`. The app tells you if it's missing.
+- **Web page:** open the address the PC is showing — something like `https://192.168.1.42:5000` —
+  in the phone's browser. Or point the phone camera at the QR code on the PC to open it.
+- **App:** type in IP (Default Port is `5000`) or save it as a profile.
 
-**3. Open the address on your phone.** The PC window shows something like `https://192.168.1.42:5000`,
-and a QR code you can scan instead of typing. Your phone and PC must be on the same Wi‑Fi.
 
-**4. Accept the security warning.** Your phone will say the connection isn't private. That's
-expected — browsers only allow microphone access over HTTPS, so Poros makes its own certificate.
-Tap **Advanced → Proceed**.
 
-**5. Type the PIN** shown on the PC window. (You can change it, or turn the PIN off entirely, in
-Settings.)
+**5. Type the PIN** shown on the PC window. You can change it, or turn it off entirely, in
+Settings.
 
 **6. Point your app at Poros's microphone.** In the game, Discord, Zoom, OBS — wherever — pick
 the virtual device as the microphone input:
@@ -66,11 +53,9 @@ the virtual device as the microphone input:
 | Your PC | Choose this microphone |
 | --- | --- |
 | Windows | `CABLE Output (VB-Audio Virtual Cable)` |
-| Linux | `Poros Virtual Output Monitor` |
-| macOS | `BlackHole 2ch` |
 
-*(On Windows you'll also see a `CABLE Input` device — that's the other end of the same cable.
-The app plays into it, so you record from `CABLE Output`.)*
+*(You'll also see a `CABLE Input` device — that's the other end of the same cable. Poros plays
+into it, so you record from `CABLE Output`.)*
 
 **7. Talk.**
 
@@ -78,119 +63,78 @@ The app plays into it, so you record from `CABLE Output`.)*
 
 The phone camera becomes a normal Windows webcam named **Poros Virtual Camera**.
 
-1. Open the **Camera** screen on the phone app so it can announce itself to the PC.
-2. On the PC, press **Camera** to open the camera window. The virtual camera is installed the
-   first time you start streaming (Windows asks for permission — say yes).
-3. Pick a resolution and frame rate, then press **Start camera**. The preview appears on the PC
-   and *Poros Virtual Camera* becomes selectable in Zoom, OBS, the browser — anywhere.
+1. On the phone, tap the round **camera button** next to the microphone button.
+2. On the PC, press the round **camera button** at the bottom. The first time, Windows asks for
+   permission to install the virtual camera — say yes.
+3. The picture appears in the Poros window, and *Poros Virtual Camera* becomes selectable in
+   Zoom, OBS — anywhere you pick a camera.
 
-From the camera window you can switch between the front and back camera, turn the torch on,
-mirror or rotate the image, zoom, and take a snapshot (saved under `Pictures\Poros`).
+The phone encodes with its hardware encoder, so it can stream up to **4K60fps**. Best is **1080p60 over TCP**;
 
-The phone encodes with its hardware encoder, so it can stream up to **4K at 60 fps** where the
-phone supports it. Wired/close Wi‑Fi gives the smoothest result.
-
-To remove the virtual camera later, use the **Uninstall** button next to the virtual camera
-status in the camera window.
-
-## On the PC
-
-The window is small on purpose. From it you can:
-
-- See whether your phone is connected.
-- Pick the audio output device Poros plays into (it finds the virtual one automatically).
-- Set the volume, and mute — the tray icon can mute too.
-- Open the **Camera** window for the live preview and virtual‑camera controls.
-- Copy any of your PC's addresses (Wi‑Fi, Ethernet, VPN, Tailscale), and show a QR code for
-  whichever network your phone is actually on.
-- Change the **port**, the **PIN**, the **language** (English / 中文 / Tiếng Việt), whether it
-  starts with Windows, and whether closing the window quits or hides to the tray.
-
-## The phone app
-
-**`Poros-Client-<version>.apk`** from the same [Releases page](https://github.com/timuela/Poros/releases).
-Needs Android 8.0 or newer.
-
-- Keeps streaming with the screen off (it runs as a proper foreground service).
-- The **Camera** screen streams the phone camera to the PC's virtual webcam.
-- Save your PCs as **profiles** and switch between them instead of retyping the address.
-- Type just the IP — the port defaults to `5000`.
+Tested on Redmi K40s at 4K60fps / Bitrate 6000kbps
 
 ## Troubleshooting
 
 **My phone says the connection isn't private.**
-That's normal and safe. It's Poros's own certificate, not a broken site. Tap **Advanced**, then
-**Proceed**.
+That's normal and safe. Tap **Advanced**, then **Proceed**.
 
-**My PC suddenly has no sound (Windows).**
+**My PC suddenly has no sound.**
 The driver installer sometimes makes the virtual cable your default speaker. Click the speaker
-icon in the taskbar and switch back to your real speakers or headphones. Poros reminds you about
-this after installing.
+icon in the taskbar and switch back to your real speakers or headphones.
+
+**"PIN error" on the phone.**
+Type the PIN exactly as it appears on the PC window. If it still refuses, press **New PIN** on the
+PC and try the fresh one.
+
+**The camera button does nothing.**
+Turn the camera on from the phone app first — the PC can only stream a camera the phone has switched on.
 
 **The virtual camera doesn't appear in Zoom/OBS.**
-Install it from the camera window (**Install**), then reopen the app that should see it. Some
-apps only list cameras when they start.
+It is installed the first time you start the camera; after that, reopen the app that should see it. Some apps only list cameras when they start.
 
-**No audio at all on Linux.**
-Install PortAudio: `sudo apt install libportaudio2`. It's a system library, so it isn't bundled
-inside the app.
-
-**"pactl: command not found" (Linux).**
-You need PulseAudio or PipeWire. Most desktops already have one; if not, `sudo apt install
-pulseaudio-utils` (Debian/Ubuntu) or `sudo pacman -S pulseaudio` (Arch).
+**The picture stutters.**
+Lower the resolution or frame rate in **Quality**, and keep the transport on **TCP**. Move the phone and PC onto the same access point — Wi‑Fi extenders and guest networks are the usual culprit.
 
 **My phone can't reach the PC.**
-Check both are on the same Wi‑Fi, and that you used the address the PC is actually showing —
-if you're on a VPN or Tailscale, pick that address. Guest Wi‑Fi and "client isolation" block
-phone-to-PC traffic entirely.
-
-**The camera stutters or drops at 4K.**
-4K/60 is heavy; lower the resolution or frame rate in the camera window, or move the phone and
-PC onto the same access point.
-
-**Uninstalling the driver on Windows fails.**
-Run Poros as administrator for that, and restart the PC afterwards to clear the audio routing.
+Check both are on the same Wi‑Fi, and that you used the address the PC is actually showing — if you're on a VPN or Tailscale, pick that address. Guest Wi‑Fi and "client isolation" block phone-to-PC traffic entirely.
 
 ## Building from source
 
-Requires **Python 3.11 or newer** (PySide6 supports 3.14 from 6.10; the CI builds on 3.11).
+You need **Python 3.11 or newer**, and for the phone app **JDK 17** with the Android SDK.
+`dev\setup.ps1` fetches both and creates the Python virtualenv — about 700 MB, one time, no admin
+rights, and nothing installed system-wide:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File dev\setup.ps1
+```
+
+Then build whichever half you need:
+
+```powershell
+dev\run-host.ps1          # run the host straight from source - the fast way to iterate
+dev\build-host.ps1        # dist\Poros\ plus the portable exe
+dev\build-installer.ps1   # the installer (needs Inno Setup 6)
+dev\build-apk.ps1         # the phone app
+```
+
+The version comes from `VERSION` in `main.py` — bump that and every script follows, locally and in
+CI. [dev/README.md](dev/README.md) has the longer version, including troubleshooting.
+
+Or if u prefer manually:
 
 ```bash
-git clone https://github.com/timuela/Poros.git
-cd Poros
-
 python -m venv .venv
-
-# Windows
 .\.venv\Scripts\activate
 pip install -r requirements.txt
 pip install -r requirements-windows.txt
+.\build.bat                # -> dist/Poros/
 
-# Linux / macOS
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Build the desktop host — Windows
-.\build.bat
-
-# Build the desktop host — Linux / macOS
-./build.sh
-```
-
-The app lands in `dist/Poros/`. On Windows, `dev\build-host.ps1` also produces the single-file
-portable exe, and `dev\build-installer.ps1` builds the installer (needs [Inno Setup 6](https://jrsoftware.org/isdl.php)).
-
-The Windows build bundles `virtualcam/poros-cam.dll`, the DirectShow sender that publishes the
-virtual webcam; it is registered per machine the first time you install or start the camera.
-
-For the Android client, open `android/` in Android Studio (JDK 17) or use the CLI:
-
-```bash
 cd android
-./gradlew assembleRelease        # Windows: gradlew.bat assembleRelease
+gradlew.bat assembleRelease   # ./gradlew on Linux/macOS
 ```
 
-The APK is written to `android/app/build/outputs/apk/release/app-release.apk`.
+Gradle needs `ANDROID_HOME` and `JAVA_HOME` pointing at the SDK and at JDK 17 (AGP rejects newer
+JDKs); `dev\setup.ps1` sets that up for you.
 
 ## License
 

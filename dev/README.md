@@ -27,8 +27,8 @@ Roughly 700 MB of downloads, one time.
 
 ```powershell
 dev\run-host.ps1      # run the host from source - use this while fixing things
-dev\build-host.ps1    # dist\Poros\ + dist\Poros-Portable-<version>-windows-x64.zip
-dev\build-installer.ps1  # dist\Poros-Setup-<version>.exe (needs Inno Setup 6)
+dev\build-host.ps1    # dist\Poros\ + dist\Poros-Host-Portable-<version>-windows-x64.exe
+dev\build-installer.ps1  # dist\Poros-Host-Setup-<version>-windows-x64.exe (needs Inno Setup 6)
 dev\build-apk.ps1     # dist\Poros-Client-<version>.apk
 ```
 
